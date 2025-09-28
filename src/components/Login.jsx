@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import apiService from "../services/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ function Login() {
     password: "",
     userType: "student",
   });
+
 
   const [error, setError] = useState("");
 
@@ -20,7 +22,7 @@ function Login() {
     setError(""); // Clear any previous error when user makes changes
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); // Clear any previous error
 
@@ -30,23 +32,37 @@ function Login() {
       return;
     }
 
-    // In a real application, you would validate credentials against a backend
-    // For now, we'll just simulate a successful login
-    console.log("Form submitted:", formData);
+    try {
+      // Use the API service to authenticate
+      const response = await apiService.login({
+        email: formData.username, // API expects email
+        password: formData.password,
+      });
 
-    // Navigate based on user type
-    switch (formData.userType) {
-      case "student":
-        navigate("/student");
-        break;
-      case "faculty":
-        navigate("/faculty");
-        break;
-      case "admin":
-        navigate("/admin");
-        break;
-      default:
-        setError("Invalid user type");
+      console.log("Login successful:", response);
+
+      // Store user data (in a real app, you'd use context or state management)
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('token', response.token);
+
+      // Navigate based on user type from API response or form selection
+      const userRole = response.user?.role || formData.userType;
+      switch (userRole) {
+        case "student":
+          navigate("/student");
+          break;
+        case "faculty":
+          navigate("/faculty");
+          break;
+        case "admin":
+          navigate("/admin");
+          break;
+        default:
+          setError("Invalid user type");
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      setError(error.message || "Login failed. Please try again.");
     }
   };
 
